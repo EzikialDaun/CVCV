@@ -1,7 +1,11 @@
+# .keras -> .h5
+
 import os
-import re
 from glob import glob
+
 import tensorflow as tf
+
+from utility import natural_key
 
 
 def k2h5(path, new_dir='.'):
@@ -11,11 +15,6 @@ def k2h5(path, new_dir='.'):
     file_name = path.split('\\')[1]
     file_name = natural_key(file_name)[0]
     model.save(f'{new_dir}\\{file_name}.h5')
-
-
-def natural_key(filename):
-    # 숫자와 문자를 나눠서 정렬 키 생성: '10.png' → ['10', '.png']
-    return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', filename)]
 
 
 if __name__ == '__main__':

@@ -1,9 +1,10 @@
 import os
-import re
+from glob import glob
 
 import pandas as pd
 from deepface import DeepFace
-from glob import glob
+
+from utility import natural_key
 
 
 def get_df_property(image_path, silent=False):
@@ -27,11 +28,6 @@ def get_df_property(image_path, silent=False):
         result['Middle_Eastern'] = round(objs[0]['race']['middle eastern'] / 100, 2)
         result['Latino_Hispanic'] = round(objs[0]['race']['latino hispanic'] / 100, 2)
         return result
-
-
-def natural_key(filename):
-    # 숫자와 문자를 나눠서 정렬 키 생성: '10.png' → ['10', '.png']
-    return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', filename)]
 
 
 if __name__ == '__main__':

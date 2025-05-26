@@ -1,5 +1,4 @@
 import os
-import re
 from glob import glob
 
 import keras
@@ -8,15 +7,10 @@ import pandas as pd
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing import image
 
-
-def natural_key(filename):
-    # 숫자와 문자를 나눠서 정렬 키 생성: '10.png' → ['10', '.png']
-    return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', filename)]
+from utility import natural_key
 
 
 def predict_property(image_path, model_dir, silent=False):
-    IMG_SIZE = (224, 224)
-
     model_paths = glob(os.path.join(model_dir, '*.h5'))
     model_paths.sort()
     if not model_paths:
@@ -25,7 +19,7 @@ def predict_property(image_path, model_dir, silent=False):
     attribute_names = [os.path.splitext(os.path.basename(p))[0] for p in model_paths]
 
     # 이미지 로드 및 전처리
-    img = image.load_img(image_path, target_size=IMG_SIZE)
+    img = image.load_img(image_path, target_size=(224, 224))
     img_array = image.img_to_array(img)
     img_array = preprocess_input(img_array)
     img_array = np.expand_dims(img_array, axis=0)

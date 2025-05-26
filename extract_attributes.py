@@ -1,11 +1,11 @@
 import os
-import re
 from glob import glob
 
 import pandas as pd
 
 from df_analyze import get_df_property
 from predict_property import predict_property
+from utility import natural_key
 
 
 def create_dict(path, model_dir):
@@ -13,11 +13,6 @@ def create_dict(path, model_dir):
     facial_dict = predict_property(path, model_dir)
     facial_dict.update(deepface_dict)
     return facial_dict
-
-
-def natural_key(filename):
-    # 숫자와 문자를 나눠서 정렬 키 생성: '10.png' → ['10', '.png']
-    return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', filename)]
 
 
 if __name__ == '__main__':
