@@ -14,9 +14,10 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 # -------------------------
 IMG_HEIGHT, IMG_WIDTH = 224, 224
 BATCH_SIZE = 32
-EPOCHS = 30
-ATTRIBUTE = 'Narrow_Eyes'  # 예측할 속성 이름
-TOTAL_SAMPLES = 40000  # 사용할 전체 표본 수 지정
+EPOCHS = 10
+PATIENCE = 5
+ATTRIBUTE = 'Wearing_Hat'  # 예측할 속성 이름
+TOTAL_SAMPLES = 5000  # 사용할 전체 표본 수 지정
 
 # 데이터 경로
 main_folder = '../archive'
@@ -150,7 +151,7 @@ model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy']
 # -------------------------
 early_stop = EarlyStopping(
     monitor='val_loss',
-    patience=3,
+    patience=PATIENCE,
     restore_best_weights=True,
     verbose=1
 )
@@ -169,7 +170,5 @@ loss, accuracy = model.evaluate(test_generator)
 print(f"Test Loss: {loss:.4f}")
 print(f"Test Accuracy: {accuracy:.4f}")
 
-# -------------------------
-# 모델 저장 (선택)
-# -------------------------
-model.save(ATTRIBUTE + '.keras')
+# 모델 저장
+model.save(ATTRIBUTE + '.h5')

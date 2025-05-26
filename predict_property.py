@@ -1,10 +1,10 @@
 import os
 import re
-import numpy as np
 from glob import glob
 
+import keras
+import numpy as np
 import pandas as pd
-import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing import image
 
@@ -14,13 +14,13 @@ def natural_key(filename):
     return [int(s) if s.isdigit() else s.lower() for s in re.split(r'(\d+)', filename)]
 
 
-def predict_property(image_path, model_dir):
+def predict_property(image_path, model_dir, silent=False):
     IMG_SIZE = (224, 224)
 
-    model_paths = glob(os.path.join(model_dir, '*.keras'))
+    model_paths = glob(os.path.join(model_dir, '*.h5'))
     model_paths.sort()
     if not model_paths:
-        raise FileNotFoundError(f"❌ 모델 폴더({MODEL_FOLDER})에 .keras 파일이 없습니다.")
+        raise FileNotFoundError(f"폴더({MODEL_FOLDER})에 모델 파일이 없습니다.")
 
     attribute_names = [os.path.splitext(os.path.basename(p))[0] for p in model_paths]
 
@@ -33,21 +33,22 @@ def predict_property(image_path, model_dir):
     result = {'frame': image_path.split('\\')[1]}
 
     for model_path, attr in zip(model_paths, attribute_names):
-        model = tf.keras.models.load_model(model_path)
+        model = keras.models.load_model(model_path)
 
         prediction = model.predict(img_array, verbose=0)
         score = float(prediction[0][0])
         # predicted_class = int(score > 0.5)
 
         result[f'{attr}'] = round(score, 2)
-        print(f'{attr} - {round(score, 2)}')
+        if not silent:
+            print(f'{attr} - {round(score, 2)}')
 
     return result
 
 
 if __name__ == '__main__':
     IMAGE_FOLDER = 'test'
-    MODEL_FOLDER = 'model'
+    MODEL_FOLDER = 'h5_models'
     RESULT_FILE = 'prediction_results.csv'
 
     image_paths = glob(os.path.join(IMAGE_FOLDER, '*'))

@@ -6,23 +6,26 @@ from deepface import DeepFace
 from glob import glob
 
 
-def get_df_property(image_path):
+def get_df_property(image_path, silent=False):
     result = {'frame': image_path.split('\\')[1]}
     objs = DeepFace.analyze(
-        img_path=image_path, actions=['gender', 'race'], detector_backend='retinaface', enforce_detection=False
+        img_path=image_path, actions=['gender', 'race'], detector_backend='retinaface', enforce_detection=False,
+        silent=silent
     )
-    filtered_results = [item for item in objs if item.get('face_confidence', 0) > 0.5]
-    if len(filtered_results) <= 0:
+    if not silent:
+        print(objs)
+    # filtered_results = [item for item in objs if item.get('face_confidence', 0) > 0.5]
+    if len(objs) <= 0:
         print("얼굴을 찾지 못했습니다.")
         return None
     else:
-        result['Man'] = round(filtered_results[0]['gender']['Man'] / 100, 2)
-        result['Asian'] = round(filtered_results[0]['race']['asian'] / 100, 2)
-        result['Indian'] = round(filtered_results[0]['race']['indian'] / 100, 2)
-        result['Black'] = round(filtered_results[0]['race']['black'] / 100, 2)
-        result['White'] = round(filtered_results[0]['race']['white'] / 100, 2)
-        result['Middle_Eastern'] = round(filtered_results[0]['race']['middle eastern'] / 100, 2)
-        result['Latino_Hispanic'] = round(filtered_results[0]['race']['latino hispanic'] / 100, 2)
+        result['Man'] = round(objs[0]['gender']['Man'] / 100, 2)
+        result['Asian'] = round(objs[0]['race']['asian'] / 100, 2)
+        result['Indian'] = round(objs[0]['race']['indian'] / 100, 2)
+        result['Black'] = round(objs[0]['race']['black'] / 100, 2)
+        result['White'] = round(objs[0]['race']['white'] / 100, 2)
+        result['Middle_Eastern'] = round(objs[0]['race']['middle eastern'] / 100, 2)
+        result['Latino_Hispanic'] = round(objs[0]['race']['latino hispanic'] / 100, 2)
         return result
 
 
@@ -32,7 +35,7 @@ def natural_key(filename):
 
 
 if __name__ == '__main__':
-    MODEL_FOLDER = 'model'  # .keras 파일들이 들어있는 폴더
+    MODEL_FOLDER = 'h5_models'  # .keras 파일들이 들어있는 폴더
     IMAGE_FOLDER = 'test'  # 예측할 .png 이미지들이 들어있는 폴더
     RESULT_FILE = 'df_prediction_results.csv'
 
