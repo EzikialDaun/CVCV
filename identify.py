@@ -32,9 +32,8 @@ def identify(target_path, model_dir, profile_dir, profile_path, vanilla=False, s
         return expected_character
     else:
         profile_df = pd.read_csv(profile_path)
-        unused_list = ['frame', 'name', 'Wearing_Hat', 'Wearing_Necklace', 'Wearing_Necktie', 'Eyeglasses']
-        dt = create_dict(target_path, model_dir)
-        optimize_dict(dt, unused_list)
+        unused_list = ['frame', 'name']
+        attr_dict = create_dict(target_path, model_dir)
         dfs = DeepFace.find(img_path=target_path, db_path=profile_dir, threshold=1.04,
                             detector_backend='retinaface', model_name='Facenet512', silent=silent)
         for item in dfs[0].values:
@@ -46,8 +45,8 @@ def identify(target_path, model_dir, profile_dir, profile_path, vanilla=False, s
             result = {'name': character, 'facial_distance': facial_distance}
             # 후보 이름과 일치하는 프로필 행 가져오기
             profile_dict = profile_df.loc[profile_df['name'] == character].to_dict('records')[0]
-            optimize_dict(profile_dict, unused_list)
-            attr_distance = dict_similarity(dt, profile_dict)
+            attr_distance = dict_similarity(optimize_dict(attr_dict, unused_list),
+                                            optimize_dict(profile_dict, unused_list))
             result['attr_distance'] = attr_distance
             result['distance'] = (1 - attr_distance) * result['facial_distance']
             result_list.append(result)
