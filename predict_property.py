@@ -1,3 +1,5 @@
+# 사용자 정의 모델로 얼굴 속성 추출
+
 import os
 from glob import glob
 
@@ -50,7 +52,7 @@ if __name__ == '__main__':
     image_paths = sorted(image_paths, key=lambda x: natural_key(os.path.basename(x)))
 
     if not image_paths:
-        raise FileNotFoundError(f"❌ 이미지 폴더({IMAGE_FOLDER})에 이미지 파일이 없습니다.")
+        raise FileNotFoundError(f"이미지 폴더({IMAGE_FOLDER})에 이미지 파일이 없습니다.")
 
     results = []
 

@@ -1,3 +1,5 @@
+# celeba 데이터셋 기반 모델 학습
+
 import os
 
 import pandas as pd
