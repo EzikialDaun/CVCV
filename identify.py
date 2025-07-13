@@ -4,8 +4,8 @@ import pandas as pd
 from deepface import DeepFace
 
 from cal_distance import dict_similarity
+from ppe_analyzer import PPEAnalyzer
 from resnet_celeba import CelebAAttributePredictor
-from utility import sigmoid
 
 # 사용할 얼굴 속성
 """
@@ -41,22 +41,52 @@ target_attributes = [
 ]
 """
 
-target_attributes = [
-    '5_o_Clock_Shadow', 'Arched_Eyebrows', 'Attractive', 'Bags_Under_Eyes', 'Bald',
-    'Bangs', 'Big_Lips', 'Big_Nose', 'Black_Hair', 'Blond_Hair',
-    'Blurry', 'Brown_Hair', 'Bushy_Eyebrows', 'Chubby', 'Double_Chin',
-    'Eyeglasses', 'Goatee', 'Gray_Hair', 'Heavy_Makeup', 'High_Cheekbones',
-    'Male', 'Mouth_Slightly_Open', 'Mustache', 'Narrow_Eyes', 'No_Beard',
-    'Oval_Face', 'Pale_Skin', 'Pointy_Nose', 'Receding_Hairline', 'Rosy_Cheeks',
-    'Sideburns', 'Smiling', 'Straight_Hair', 'Wavy_Hair', 'Wearing_Earrings',
-    'Wearing_Hat', 'Wearing_Lipstick', 'Wearing_Necklace', 'Wearing_Necktie', 'Young'
+celeba_attributes = [
+    'No_Beard',
+    'Male'
 ]
 
+transient_attributes = [
+    'Eyeglasses',
+    'Wearing_Earrings',
+    'Wearing_Hat',
+    'Wearing_Lipstick',
+    'Wearing_Necklace',
+    'Wearing_Necktie',
+    'glasses',
+    'hat',
+    'mask'
+]
+
+deepface_attributes = [
+    'white',
+    'black',
+    'asian',
+    'indian',
+    'middle eastern',
+    'latino hispanic',
+    'male'
+]
+
+equipments = [
+    'glasses',
+    'hat',
+]
+
+entire_attributes = celeba_attributes + deepface_attributes + equipments
+
 # 얼굴 속성 예측기
-predictor = CelebAAttributePredictor('resnet_celeba_all_attrs_2000each.pth', target_attrs=target_attributes)
+predictor = CelebAAttributePredictor('resnet_celeba_all_attrs_2000each.pth', target_attrs=celeba_attributes)
+ppe_analyzer = PPEAnalyzer()
 
 
-def identify(target_path, profile_dataframe, profile_dir, vanilla_mode=False, silent=False, threshold=1.04):
+def split_dict_by_keys(data, key_list):
+    a = {k: v for k, v in data.items() if k in key_list}
+    b = {k: v for k, v in data.items() if k not in key_list}
+    return a, b
+
+
+def identify(target_path, profile_dataframe, profile_dir, vanilla_mode=False, silent=False, threshold=1.0):
     result_list = []
 
     if vanilla_mode:
@@ -89,6 +119,18 @@ def identify(target_path, profile_dataframe, profile_dir, vanilla_mode=False, si
                                    enforce_detection=False)
 
     attr_dict = predictor.predict_image(image_ndarray=face_crop)
+    equipment_dict = ppe_analyzer.detect_wearing_items(image_ndarray=face_crop)
+    # 마스크 배제
+    equipment_dict.pop('mask', None)
+    attr_dict.update(equipment_dict)
+    race_dict = {'white': 0, 'latino hispanic': 0, 'asian': 0, 'black': 0, 'indian': 0, 'middle eastern': 0,
+                 analysis[0]['dominant_race']: 1}
+    if analysis[0]['dominant_gender'] == 'Man':
+        attr_dict.update({'male': 1})
+    else:
+        attr_dict.update({'male': 0})
+    attr_dict.update(race_dict)
+    attr_a_dict, attr_b_dict = split_dict_by_keys(attr_dict, transient_attributes)
 
     best_similarity = -1
     best_result = None
@@ -99,11 +141,20 @@ def identify(target_path, profile_dataframe, profile_dir, vanilla_mode=False, si
         facial_distance = item[11]
 
         profile_data = profile_dataframe.loc[profile_dataframe['name'] == character].to_dict('records')[0]
-        target_dict = {attr: profile_data[attr] for attr in target_attributes if attr in profile_data}
-
+        target_dict = {attr: profile_data[attr] for attr in entire_attributes if
+                       attr in profile_data}
+        target_a_dict, target_b_dict = split_dict_by_keys(target_dict, transient_attributes)
         facial_similarity = 1 - (facial_distance / threshold)
         attr_similarity = dict_similarity(attr_dict, target_dict)
-        similarity = sigmoid(attr_similarity + facial_similarity)
+        w_f = 0.5
+        w_a = 0.5
+        similarity = w_a * attr_similarity + w_f * facial_similarity
+
+        for k, v in target_a_dict.items():
+            if target_a_dict[k] == 1 and attr_a_dict[k] == 1:
+                print(f'k : {k} equals, previous sim: {attr_similarity}')
+                attr_similarity = min([1, attr_similarity * 1.1])
+                print(f'k : {k} equals, new sim : {attr_similarity}')
 
         if similarity > best_similarity:
             best_similarity = similarity
@@ -119,7 +170,7 @@ def identify(target_path, profile_dataframe, profile_dir, vanilla_mode=False, si
 
 
 if __name__ == '__main__':
-    MOVIE_NAME = 'green_book'
+    MOVIE_NAME = 'django_unchained'
     IMAGE_DIR = f'..\\MyFace Dataset Lite\\{MOVIE_NAME}\\probe'
     PROFILE_DIR = f'..\\MyFace Dataset Lite\\{MOVIE_NAME}\\profile'
     PROFILE_PATH = f'..\\MyFace Dataset Lite\\{MOVIE_NAME}\\profile.csv'
@@ -135,7 +186,7 @@ if __name__ == '__main__':
     results = []
 
     # F1-score 관련 카운터
-    attr_score = {attr: {'TP': 0, 'FP': 0, 'FN': 0, 'TN': 0} for attr in target_attributes}
+    attr_score = {attr: {'TP': 0, 'FP': 0, 'FN': 0, 'TN': 0} for attr in entire_attributes}
 
     for label in label_df:
         file_name = f"{IMAGE_DIR}\\{label[0]}"
@@ -166,7 +217,7 @@ if __name__ == '__main__':
             })
 
             # F1 계산을 위한 TP/FP/FN/TN 누적
-            for attr in target_attributes:
+            for attr in entire_attributes:
                 prediction = predicted_attr[attr]
                 truth = true_attr[attr]
 
@@ -186,7 +237,7 @@ if __name__ == '__main__':
     print("\n=== Attribute-wise F1-Score ===")
     f1_rows = []
 
-    for attr in target_attributes:
+    for attr in entire_attributes:
         TP = attr_score[attr]['TP']
         FP = attr_score[attr]['FP']
         FN = attr_score[attr]['FN']
